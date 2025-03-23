@@ -2,6 +2,10 @@
 import mongoose from "mongoose";
 
 const fileSchema = new mongoose.Schema({
+  fileId: {
+    type: String,
+    required: true,
+  },
   filename: {
     type: String,
     required: true,

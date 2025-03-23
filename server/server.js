@@ -9,6 +9,7 @@ import { EventEmitter } from "events"; // Import EventEmitter
 
 import uploadRoutes from "./routes/uploadRoutes.js";
 import streamRoutes from "./routes/streamRoutes.js";
+import fileRoutes from "./routes/filesRoutes.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -30,7 +31,8 @@ app.use(
   cors({
     origin: "http://localhost:3000",
     methods: ["GET", "POST"],
-    allowedHeaders: ["Content-Type"],
+    allowedHeaders: ["Content-Type", "Range"], // Add Range header
+    exposedHeaders: ["Content-Range", "Content-Length"], // Add these
   })
 );
 app.use(express.json());
@@ -52,6 +54,7 @@ app.use(morgan("combined", { stream: logStream }));
 // Routes
 app.use("/api/upload", uploadRoutes);
 app.use("/api/stream", streamRoutes);
+app.use("/api/files", fileRoutes);
 
 // Stream logs to clients via SSE (Server-Sent Events)
 app.get("/api/logs", (req, res) => {

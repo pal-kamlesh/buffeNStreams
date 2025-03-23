@@ -4,12 +4,21 @@ import path from "path";
 import File from "../models/file.js";
 
 const streamVideo = async (req, res) => {
-  const fileId = req.params.id;
+  const fileId = req.params.fileId;
 
   try {
-    const file = await File.findById(fileId);
+    // Verify if you're using _id or fileId field
+    const file = await File.findOne({ _id: fileId }); // If using Solution 1 from previous answer
+    // OR if using Solution 2:
+    // const file = await File.findOne({ fileId });
+
     if (!file) {
       return res.status(404).json({ error: "File not found" });
+    }
+
+    // Verify file exists physically
+    if (!fs.existsSync(file.path)) {
+      return res.status(404).json({ error: "File not found on server" });
     }
 
     const stat = fs.statSync(file.path);
@@ -17,33 +26,50 @@ const streamVideo = async (req, res) => {
     const range = req.headers.range;
 
     if (range) {
-      // Parse Range header
       const parts = range.replace(/bytes=/, "").split("-");
       const start = parseInt(parts[0], 10);
       const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
-      const chunkSize = end - start + 1;
 
-      // Create read stream for the specific range
+      if (start >= fileSize || end >= fileSize) {
+        return res
+          .status(416)
+          .header({
+            "Content-Range": `bytes */${fileSize}`,
+          })
+          .send();
+      }
+
+      const chunkSize = end - start + 1;
       const stream = fs.createReadStream(file.path, { start, end });
 
-      // Set appropriate headers
+      // Add proper headers
       res.writeHead(206, {
         "Content-Range": `bytes ${start}-${end}/${fileSize}`,
         "Accept-Ranges": "bytes",
         "Content-Length": chunkSize,
         "Content-Type": "video/mp4",
+        "Cache-Control": "no-cache",
       });
 
-      // Pipe the stream to response
+      stream.on("error", (err) => {
+        console.error("Stream error:", err);
+        res.end();
+      });
+
       stream.pipe(res);
     } else {
-      // Stream the entire file
       res.writeHead(200, {
         "Content-Length": fileSize,
         "Content-Type": "video/mp4",
+        "Cache-Control": "no-cache",
       });
 
-      fs.createReadStream(file.path).pipe(res);
+      fs.createReadStream(file.path)
+        .on("error", (err) => {
+          console.error("Stream error:", err);
+          res.end();
+        })
+        .pipe(res);
     }
   } catch (err) {
     console.error("Streaming error:", err);

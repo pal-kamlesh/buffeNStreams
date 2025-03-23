@@ -13,9 +13,7 @@ const VideoPlayer = () => {
     // Fetch video metadata
     const fetchVideoInfo = async () => {
       try {
-        const response = await fetch(
-          `http://localhost:5000/api/files/${fileId}`
-        );
+        const response = await fetch(`/api/files/${fileId}`);
         if (!response.ok) {
           throw new Error("Video not found");
         }
@@ -35,7 +33,7 @@ const VideoPlayer = () => {
     // Set up video stream source
     if (videoRef.current && videoInfo) {
       // The src will be handled by the browser's native streaming capabilities
-      videoRef.current.src = `http://localhost:5000/api/stream/video/${fileId}`;
+      videoRef.current.src = `/api/stream/video/${fileId}`;
     }
   }, [videoRef, videoInfo, fileId]);
 
